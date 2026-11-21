@@ -103,5 +103,8 @@
     "puppeteer": "^25.1.0",
     "svelte": "^5",
     "zod": "^4.3.6"
+  },
+  "overrides": {
+    "readdir-glob": "4.0.0"
   }
 }
