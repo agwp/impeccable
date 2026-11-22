@@ -28,7 +28,7 @@ concurrency:
 jobs:
   issue-inbox:
     if: github.event_name == 'issues'
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     steps:
       - name: Mark issue for triage
         env:
@@ -45,7 +45,7 @@ jobs:
 
   sheriff:
     if: github.event_name != 'issues'
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -60,6 +60,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mode="--apply"
+          if [ "$GITHUB_REPOSITORY" = "agwp/impeccable" ] && [ "$GITHUB_EVENT_NAME" = "schedule" ]; then
+            mode="--dry-run"
+          fi
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then
             mode="--dry-run"
           fi
