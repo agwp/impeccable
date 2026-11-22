@@ -35,8 +35,9 @@ env:
 
 jobs:
   changes:
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     outputs:
+      oracle: ${{ steps.plan.outputs.oracle }}
       core: ${{ steps.plan.outputs.core }}
       rust: ${{ steps.plan.outputs.rust }}
       detector: ${{ steps.plan.outputs.detector }}
@@ -67,7 +68,7 @@ jobs:
 
   test-matrix:
     name: test (Node ${{ matrix.node-version }})
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     needs: changes
     strategy:
       fail-fast: false
@@ -131,7 +132,7 @@ jobs:
 
       - name: Cache Rust on the Namespace cache volume
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
-        if: needs.changes.outputs.detector == 'true'
+        if: github.repository != 'agwp/impeccable' && (needs.changes.outputs.detector == 'true')
         with:
           cache: rust
 
@@ -142,7 +143,7 @@ jobs:
       # wasm-pack fetches wasm-bindgen and binaryen (wasm-opt) from GitHub
       # releases on first use; cached, a GitHub release outage cannot fail the build.
       - name: Cache wasm-pack tools
-        if: needs.changes.outputs.detector == 'true'
+        if: github.repository != 'agwp/impeccable' && (needs.changes.outputs.detector == 'true')
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
         with:
           path: ~/.cache/.wasm-pack
@@ -191,7 +192,7 @@ jobs:
   # The Rust workspace: the engine binary, the rule core, and every crate
   # behind them. Everything builds from source with no downloads.
   rust:
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     needs: changes
     if: needs.changes.outputs.rust == 'true'
     steps:
@@ -205,6 +206,7 @@ jobs:
 
       - name: Cache Rust on the Namespace cache volume
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        if: github.repository != 'agwp/impeccable'
         with:
           cache: rust
 
@@ -218,7 +220,7 @@ jobs:
   # workspace has to build and pass its own tests there. Tests that need a
   # browser or the oracle skip when those are absent.
   rust-windows:
-    runs-on: namespace-profile-impeccable-windows
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'windows-2025' || 'namespace-profile-impeccable-windows' }}
     needs: changes
     if: needs.changes.outputs.rust == 'true'
     steps:
@@ -260,7 +262,7 @@ jobs:
       - run: cargo test --workspace --no-fail-fast
 
   launcher-windows:
-    runs-on: namespace-profile-impeccable-windows
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'windows-2025' || 'namespace-profile-impeccable-windows' }}
     needs: changes
     if: needs.changes.outputs.core == 'true'
     steps:
@@ -282,7 +284,7 @@ jobs:
   # it to an older CLI that can no longer install (#361, #850). SHIM_FLOOR is
   # the version this job proves, and engines.node must match it.
   cli-shim-floor:
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     needs: changes
     if: needs.changes.outputs.core == 'true'
     env:
@@ -307,7 +309,7 @@ jobs:
   # runs on developer laptops: tests/oracle.test.mjs skips cleanly when no
   # binary is present, so the default suite is silent about it on CI.
   oracle:
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     needs: changes
     if: needs.changes.outputs.oracle == 'true' || needs.changes.outputs.rust == 'true' || needs.changes.outputs.new_work_e2e == 'true'
     steps:
@@ -330,6 +332,7 @@ jobs:
 
       - name: Cache Rust on the Namespace cache volume
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        if: github.repository != 'agwp/impeccable'
         with:
           cache: rust
 
@@ -360,7 +363,7 @@ jobs:
   # pin, or the launcher, the npm shim and `impeccable install` dead-end.
   # release.mjs hard-fails `release:skill`/`release:cli` on the same check.
   engine-release-ready:
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -381,7 +384,7 @@ jobs:
           echo "::error title=Engine release not ready::The engine release for v$(cat ENGINE_VERSION) is not fully published (engine-v$(cat ENGINE_VERSION) release assets and/or the @impeccable/cli-<os>-<arch> npm platform packages). Publish the engine (bun run release:engine) and the platform packages (bun run release:platform-packages) before bumping ENGINE_VERSION on main or releasing the skill/CLI. If only engine-checksums.txt is named, run node scripts/check-engine-release.mjs --record and commit it."
 
   test:
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     needs: test-matrix
     if: always()
     steps:
@@ -394,7 +397,7 @@ jobs:
           echo "test matrix passed"
 
   cli-remote-e2e:
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     needs: changes
     if: needs.changes.outputs.cli_remote_e2e == 'true'
     steps:
@@ -419,6 +422,7 @@ jobs:
 
       - name: Cache Rust on the Namespace cache volume
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        if: github.repository != 'agwp/impeccable'
         with:
           cache: rust
 
@@ -430,7 +434,7 @@ jobs:
 
   live-e2e-smoke:
     name: live-e2e smoke (${{ matrix.group }})
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     needs: changes
     if: needs.changes.outputs.live_e2e == 'true' && github.event_name != 'workflow_dispatch' && github.event_name != 'schedule'
     timeout-minutes: 15
@@ -458,11 +462,13 @@ jobs:
 
       - name: Cache fixture npm downloads
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        if: github.repository != 'agwp/impeccable'
         with:
           path: ~/.npm
 
       - name: Cache Playwright Chromium
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        if: github.repository != 'agwp/impeccable'
         with:
           path: ~/.cache/ms-playwright
 
@@ -479,6 +485,7 @@ jobs:
 
       - name: Cache Rust on the Namespace cache volume
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        if: github.repository != 'agwp/impeccable'
         with:
           cache: rust
 
@@ -505,7 +512,7 @@ jobs:
 
   live-e2e-full:
     name: live-e2e full (${{ matrix.group }})
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     needs: changes
     if: needs.changes.outputs.live_e2e == 'true' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
     timeout-minutes: 25
@@ -542,11 +549,13 @@ jobs:
 
       - name: Cache fixture npm downloads
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        if: github.repository != 'agwp/impeccable'
         with:
           path: ~/.npm
 
       - name: Cache Playwright Chromium
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        if: github.repository != 'agwp/impeccable'
         with:
           path: ~/.cache/ms-playwright
 
@@ -563,6 +572,7 @@ jobs:
 
       - name: Cache Rust on the Namespace cache volume
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
+        if: github.repository != 'agwp/impeccable'
         with:
           cache: rust
 
@@ -587,9 +597,9 @@ jobs:
           if-no-files-found: ignore
 
   live-e2e-accept-cleanup:
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     needs: changes
-    if: needs.changes.outputs.live_e2e_accept_cleanup == 'true'
+    if: (needs.changes.outputs.live_e2e_accept_cleanup == 'true') && (github.repository != 'agwp/impeccable' || github.event_name == 'workflow_dispatch')
     timeout-minutes: 15
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -614,13 +624,13 @@ jobs:
         uses: ./.github/actions/setup-bun
 
       - name: Cache fixture npm downloads
-        if: ${{ env.ANTHROPIC_API_KEY != '' || env.DEEPSEEK_API_KEY != '' }}
+        if: github.repository != 'agwp/impeccable' && (env.ANTHROPIC_API_KEY != '' || env.DEEPSEEK_API_KEY != '')
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
         with:
           path: ~/.npm
 
       - name: Cache Playwright Chromium
-        if: ${{ env.ANTHROPIC_API_KEY != '' || env.DEEPSEEK_API_KEY != '' }}
+        if: github.repository != 'agwp/impeccable' && (env.ANTHROPIC_API_KEY != '' || env.DEEPSEEK_API_KEY != '')
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
         with:
           path: ~/.cache/ms-playwright
@@ -641,7 +651,7 @@ jobs:
 
       - name: Cache Rust on the Namespace cache volume
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
-        if: ${{ env.ANTHROPIC_API_KEY != '' || env.DEEPSEEK_API_KEY != '' }}
+        if: github.repository != 'agwp/impeccable' && (env.ANTHROPIC_API_KEY != '' || env.DEEPSEEK_API_KEY != '')
         with:
           cache: rust
 
@@ -660,9 +670,9 @@ jobs:
           bun run test:live-e2e-accept-cleanup
 
   live-svelte-adapter-deepseek:
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     needs: changes
-    if: needs.changes.outputs.live_svelte_adapter_deepseek == 'true'
+    if: (needs.changes.outputs.live_svelte_adapter_deepseek == 'true') && (github.repository != 'agwp/impeccable' || github.event_name == 'workflow_dispatch')
     timeout-minutes: 25
     env:
       DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
@@ -686,13 +696,13 @@ jobs:
         uses: ./.github/actions/setup-bun
 
       - name: Cache fixture npm downloads
-        if: ${{ env.DEEPSEEK_API_KEY != '' }}
+        if: github.repository != 'agwp/impeccable' && (env.DEEPSEEK_API_KEY != '')
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
         with:
           path: ~/.npm
 
       - name: Cache Playwright Chromium
-        if: ${{ env.DEEPSEEK_API_KEY != '' }}
+        if: github.repository != 'agwp/impeccable' && (env.DEEPSEEK_API_KEY != '')
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
         with:
           path: ~/.cache/ms-playwright
@@ -713,7 +723,7 @@ jobs:
 
       - name: Cache Rust on the Namespace cache volume
         uses: namespacelabs/nscloud-cache-action@1124a6f3ce44e5cf84cc22111530961f4d2a15f9 # v1.7.0
-        if: ${{ env.DEEPSEEK_API_KEY != '' }}
+        if: github.repository != 'agwp/impeccable' && (env.DEEPSEEK_API_KEY != '')
         with:
           cache: rust
 
@@ -726,9 +736,9 @@ jobs:
         run: bun run test:live-svelte-adapter-deepseek
 
   skill-behavior:
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     needs: changes
-    if: needs.changes.outputs.skill_behavior == 'true' && github.event_name != 'pull_request'
+    if: (needs.changes.outputs.skill_behavior == 'true' && github.event_name != 'pull_request') && (github.repository != 'agwp/impeccable' || github.event_name == 'workflow_dispatch')
     env:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
@@ -757,7 +767,7 @@ jobs:
   skill-workflow:
     # Expensive, manually opted-in completion diagnostics. This does not
     # replace the multi-family skill-behavior protocol suite above.
-    runs-on: namespace-profile-impeccable
+    runs-on: ${{ github.repository == 'agwp/impeccable' && 'ubuntu-24.04' || 'namespace-profile-impeccable' }}
     if: github.event_name == 'workflow_dispatch' && inputs.skill_workflow
     timeout-minutes: 70
     env:
